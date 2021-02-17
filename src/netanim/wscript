@@ -7,22 +7,22 @@ NETANIM_RELEASE_NAME = "netanim-3.106"
 
 
 def build (bld) :
-	module = bld.create_ns3_module ('netanim', ['internet', 'mobility', 'wimax', 'wifi', 'csma', 'lte', 'uan', 'energy'])
-	module.includes = '.'
-	module.source = [
+    module = bld.create_ns3_module ('netanim', ['internet', 'mobility', 'wimax', 'wifi', 'csma', 'lte', 'uan', 'energy'])
+    module.includes = '.'
+    module.source = [
 			  'model/animation-interface.cc',
 		        ]
-    	netanim_test = bld.create_ns3_module_test_library('netanim')
-    	netanim_test.source = [
+    netanim_test = bld.create_ns3_module_test_library('netanim')
+    netanim_test.source = [
         	'test/netanim-test.cc',
         ]
 
-	headers = bld(features='ns3header')
-	headers.module = 'netanim'
-	headers.source = [
+    headers = bld(features='ns3header')
+    headers.module = 'netanim'
+    headers.source = [
 			  'model/animation-interface.h',
   			 ]
 
-	if (bld.env['ENABLE_EXAMPLES']) :
-		bld.recurse('examples')
+    if (bld.env['ENABLE_EXAMPLES']) :
+        bld.recurse('examples')
 

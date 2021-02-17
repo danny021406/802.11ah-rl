@@ -227,7 +227,7 @@ StaWifiMac::GetChannelWidth (void) const
 uint32_t
 StaWifiMac::GetAID (void) const
 {
-  NS_ASSERT ((1 <= m_aid) && (m_aid<= 8191) || (m_aid == 8192));
+  NS_ASSERT (((1 <= m_aid) && (m_aid<= 8191)) || (m_aid == 8192));
   return m_aid;
 }
 
