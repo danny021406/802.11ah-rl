@@ -27,8 +27,9 @@ NetDeviceContainer staDeviceCont;
 const int MaxSta = 8000;
 
 Configuration config;
-Statistics stats;
+Statistics *stats;
 SimulationEventManager eventManager;
+double freq[MaxSta];
 
 class assoc_record {
 public:
@@ -177,6 +178,7 @@ RPSVector configureRAW(RPSVector rpslist, string RAWConfigFile) {
 	} else
 		cout << "Unable to open RAW configuration file \n";
 
+	config.Nsta = config.NRawSta;
 	return rpslist;
 }
 
@@ -282,7 +284,7 @@ bool check (uint16_t aid, uint32_t index)
 
 
 void sendStatistics(bool schedule) {
-	eventManager.onUpdateStatistics(stats);
+	eventManager.onUpdateStatistics(*stats);
 	eventManager.onUpdateSlotStatistics(
 			transmissionsPerTIMGroupAndSlotFromAPSinceLastInterval,
 			transmissionsPerTIMGroupAndSlotFromSTASinceLastInterval);
@@ -303,10 +305,13 @@ void onSTADeassociated(int i) {
 void updateNodesQueueLength() {
 	for (uint32_t i = 0; i < config.Nsta; i++) {
 		nodes[i]->UpdateQueueLength();
-		stats.get(i).EDCAQueueLength = nodes[i]->queueLength;
+		stats->get(i).EDCAQueueLength = nodes[i]->queueLength;
 	}
 	Simulator::Schedule(Seconds(0.5), &updateNodesQueueLength);
 }
+
+// void updatePacketloss(){
+// }
 
 void onSTAAssociated(int i) {
 	cout << "Node " << std::to_string(i) << " is associated and has aid "
@@ -339,13 +344,13 @@ void onSTAAssociated(int i) {
 		cout << "All " << AssocNum << " stations associated at " << Simulator::Now ().GetMicroSeconds () <<", configuring clients & server" << endl;
 
 		// association complete, start sending packets
-		stats.TimeWhenEverySTAIsAssociated = Simulator::Now();
+		stats->TimeWhenEverySTAIsAssociated = Simulator::Now();
 
 		if (config.trafficType == "udp") {
 			std::cout << "UDP" << std::endl;
 			configureUDPServer();
 			configureUDPClients();
-		} else if (config.trafficType == "udpecho") {
+		} else if (config.trafficType == "udpecho") { //OK
 			configureUDPEchoServer();
 			configureUDPEchoClients();
 		} else if (config.trafficType == "tcpecho") {
@@ -354,10 +359,10 @@ void onSTAAssociated(int i) {
 		} else if (config.trafficType == "tcppingpong") {
 			configureTCPPingPongServer();
 			configureTCPPingPongClients();
-		} else if (config.trafficType == "tcpipcamera") {
+		} else if (config.trafficType == "tcpipcamera") { //OK
 			configureTCPIPCameraServer();
 			configureTCPIPCameraClients();
-		} else if (config.trafficType == "tcpfirmware") {
+		} else if (config.trafficType == "tcpfirmware") { //OK
 			configureTCPFirmwareServer();
 			configureTCPFirmwareClients();
 		} else if (config.trafficType == "tcpsensor") {
@@ -390,7 +395,7 @@ void configureNodes(NodeContainer& wifiStaNode, NetDeviceContainer& staDevice) {
 
 		cout << "Hooking up trace sources for STA " << i << endl;
 
-		NodeEntry* n = new NodeEntry(i, &stats, wifiStaNode.Get(i),
+		NodeEntry* n = new NodeEntry(i, stats, wifiStaNode.Get(i),
 				staDevice.Get(i));
 
 		n->SetAssociatedCallback([ = ] {onSTAAssociated(i);});
@@ -583,7 +588,7 @@ void OnAPPhyRxDrop(std::string context, Ptr<const Packet> packet,
 				}
 			}
 			if (staId != -1) {
-				stats.get(staId).NumberOfDropsByReasonAtAP[reason]++;
+				stats->get(staId).NumberOfDropsByReasonAtAP[reason]++;
 			}
 			delete chunk;
 			break;
@@ -614,10 +619,10 @@ void OnAPPacketToTransmitReceived(string context, Ptr<const Packet> packet,
 	}
 	if (staId != -1) {
 		if (isScheduled)
-			stats.get(staId).NumberOfAPScheduledPacketForNodeInNextSlot++;
+			stats->get(staId).NumberOfAPScheduledPacketForNodeInNextSlot++;
 		else {
-			stats.get(staId).NumberOfAPSentPacketForNodeImmediately++;
-			stats.get(staId).APTotalTimeRemainingWhenSendingPacketInSameSlot +=
+			stats->get(staId).NumberOfAPSentPacketForNodeImmediately++;
+			stats->get(staId).APTotalTimeRemainingWhenSendingPacketInSameSlot +=
 					timeLeftInSlot;
 		}
 	}
@@ -704,7 +709,7 @@ void tcpPacketDroppedAtServer(Address to, Ptr<Packet> packet,
 		DropReason reason) {
 	int staId = getSTAIdFromAddress(Ipv4Address::ConvertFrom(to));
 	if (staId != -1) {
-		stats.get(staId).NumberOfDropsByReasonAtAP[reason]++;
+		stats->get(staId).NumberOfDropsByReasonAtAP[reason]++;
 	}
 }
 
@@ -987,8 +992,7 @@ void wireTCPClient(ApplicationContainer clientApp, int i) {
 void configureTCPEchoClients() {
 	TcpEchoClientHelper clientHelper(apNodeInterface.GetAddress(0), 80); //address of remote node
 	clientHelper.SetAttribute("MaxPackets", UintegerValue(4294967295u));
-	clientHelper.SetAttribute("Interval",
-			TimeValue(MilliSeconds(config.trafficInterval)));
+	clientHelper.SetAttribute("Interval",  TimeValue(MilliSeconds(config.trafficInterval)));
 	//clientHelper.SetAttribute("IntervalDeviation", TimeValue(MilliSeconds(config.trafficIntervalDeviation)));
 	clientHelper.SetAttribute("PacketSize", UintegerValue(config.payloadSize));
 
@@ -1021,7 +1025,7 @@ void configureUDPClients() {
 			trafficfile >> sta_id;
 			trafficfile >> sta_traffic;
 			traffic_sta.insert(std::make_pair(sta_id, sta_traffic)); //insert data
-			//cout << "sta_id = " << sta_id << " sta_traffic = " << sta_traffic << "\n";
+			cout << "sta_id = " << sta_id << " sta_traffic = " << sta_traffic << "\n";
 		}
 		trafficfile.close();
 	} else
@@ -1051,15 +1055,34 @@ void configureUDPClients() {
 }
 
 void configureUDPEchoClients() {
-	UdpEchoClientHelper clientHelper(apNodeInterface.GetAddress(0), 9); //address of remote node
-	clientHelper.SetAttribute("MaxPackets", UintegerValue(4294967295u));
-	clientHelper.SetAttribute("Interval", TimeValue(MilliSeconds(config.trafficInterval)));
-	//clientHelper.SetAttribute("IntervalDeviation", TimeValue(MilliSeconds(config.trafficIntervalDeviation)));
-	clientHelper.SetAttribute("PacketSize", UintegerValue(config.payloadSize));
 
 	Ptr<UniformRandomVariable> m_rv = CreateObject<UniformRandomVariable>();
+    double sum = 0;
+    int distribution[config.Nsta];
+// 	for (uint16_t i = 0; i < config.Nsta; i++) {
+//         int tmp = m_rv->GetValue(0, config.trafficInterval);
+//         distribution[i] = tmp;
+//         freq[i] = distribution[i];
+//         sum += tmp;
+//     }
+    std::ifstream infile("freq.txt");
+	for (uint16_t i = 0; i < config.Nsta; i++) {
+        int tmp;
+        infile>>tmp;
+        distribution[i] = tmp;
+    }
+    
 
 	for (uint16_t i = 0; i < config.Nsta; i++) {
+        
+        UdpEchoClientHelper clientHelper(apNodeInterface.GetAddress(0), 9); //address of remote node
+        clientHelper.SetAttribute("MaxPackets", UintegerValue(4294967295u));
+        clientHelper.SetAttribute("Interval", TimeValue(MilliSeconds(distribution[i])));
+    // 	clientHelper.SetAttribute("IntervalDeviation", TimeValue(MilliSeconds(config.trafficIntervalDeviation)));
+        clientHelper.SetAttribute("PacketSize", UintegerValue(config.payloadSize));
+        
+        
+        
 		ApplicationContainer clientApp = clientHelper.Install(
 				wifiStaNode.Get(i));
 		clientApp.Get(0)->TraceConnectWithoutContext("Tx",
@@ -1166,7 +1189,6 @@ int main(int argc, char *argv[]) {
 	config = Configuration(argc, argv);
 
 	config.rps = configureRAW(config.rps, config.RAWConfigFile);
-	config.Nsta = config.NRawSta;
 
 	configurePageSlice ();
 	configureTIM ();
@@ -1179,7 +1201,7 @@ int main(int argc, char *argv[]) {
 			+ std::to_string(config.totaltraffic) + "Mbps_"
 			+ std::to_string(config.BeaconInterval) + "BI" + ".nss";
 
-	stats = Statistics(config.Nsta);
+	stats = new Statistics(config.Nsta);
 	eventManager = SimulationEventManager(config.visualizerIP,
 			config.visualizerPort, config.NSSFile);
 	uint32_t totalRawGroups(0);
@@ -1450,24 +1472,43 @@ int main(int argc, char *argv[]) {
 	eventManager.onAPNodeCreated(apposition.x, apposition.y);
 	eventManager.onStatisticsHeader();
 
-	sendStatistics(true);
+	sendStatistics(false);
 
 	Simulator::Stop(Seconds(config.simulationTime + config.CoolDownPeriod)); // allow up to a minute after the client & server apps are finished to process the queue
+// 	Simulator::Schedule(Seconds(5), &updatePacketloss);
 	Simulator::Run();
+    
+    //ns3-gym schedule
+//   Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (config.openGymPort);
+//   Ptr<AhGymEnv> ahGymEnv = CreateObject<AhGymEnv> (config.MaxGroupNum, config.Nsta, config.simulationTime + config.CoolDownPeriod, stats, nodes);
+//   ahGymEnv->SetOpenGymInterface(openGymInterface);
+
+
+//   std::cout << "\nStarting simulation for " << config.simulationTime + config.CoolDownPeriod << " s ...\n";
+
+//   //CheckThroughput ();
+
+//   Simulator::Stop (Seconds (config.simulationTime + config.CoolDownPeriod));
+//   Simulator::Run ();
+
+//   openGymInterface->NotifySimulationEnd();
+//   Simulator::Destroy ();
+
+    //ns3-gym schedule
 
 	// Visualizer throughput
 	int pay = 0, totalSuccessfulPackets = 0, totalSentPackets = 0, totalPacketsEchoed = 0;
 	for (int i = 0; i < config.Nsta; i++)
 	{
-		totalSuccessfulPackets += stats.get(i).NumberOfSuccessfulPackets;
-		totalSentPackets += stats.get(i).NumberOfSentPackets;
-		totalPacketsEchoed += stats.get(i).NumberOfSuccessfulRoundtripPackets;
-		pay += stats.get(i).TotalPacketPayloadSize;
-		cout << i << " sent: " << stats.get(i).NumberOfSentPackets
-				<< " ; delivered: " << stats.get(i).NumberOfSuccessfulPackets
-				<< " ; echoed: " << stats.get(i).NumberOfSuccessfulRoundtripPackets
+		totalSuccessfulPackets += stats->get(i).NumberOfSuccessfulPackets;
+		totalSentPackets += stats->get(i).NumberOfSentPackets;
+		totalPacketsEchoed += stats->get(i).NumberOfSuccessfulRoundtripPackets;
+		pay += stats->get(i).TotalPacketPayloadSize;
+		cout << i << " sent: " << stats->get(i).NumberOfSentPackets
+				<< " ; delivered: " << stats->get(i).NumberOfSuccessfulPackets
+				<< " ; echoed: " << stats->get(i).NumberOfSuccessfulRoundtripPackets
 				<< "; packetloss: "
-				<< stats.get(i).GetPacketLoss(config.trafficType) << endl;
+				<< stats->get(i).GetPacketLoss(config.trafficType) << endl;
 	}
 
 	if (config.trafficType == "udp")
@@ -1486,7 +1527,7 @@ int main(int argc, char *argv[]) {
 				<< std::endl;
 
 	}
-	else if (config.trafficType == "udpecho")
+	else if (config.trafficType == "udpecho" || config.trafficType == "tcpecho" )
 	{
 		double ulThroughput = 0, dlThroughput = 0;
 		ulThroughput = totalSuccessfulPackets * config.payloadSize * 8 / (config.simulationTime * 1000000.0);
@@ -1506,6 +1547,26 @@ int main(int argc, char *argv[]) {
 
 		std::cout << "datarate" << "\t" << "throughput" << std::endl;
 		std::cout << config.datarate << "\t" << throughput * 1000 << " Kbit/s" << std::endl;
+        
+        
+        ofstream fout( "info.txt");  
+        if ( ! fout){
+            cout << "檔案不能開啟" <<endl;
+        }
+        else{
+            fout << totalSentPackets << " ";
+            fout << totalSuccessfulPackets <<  " ";
+            fout << totalPacketsEchoed <<  " ";
+            fout << totalSentPackets - totalSuccessfulPackets <<  " ";
+            fout << totalSuccessfulPackets - totalPacketsEchoed <<  " ";
+            fout << totalSentPackets - totalPacketsEchoed <<  " ";
+            fout << throughput * 1000 <<  " ";
+
+            fout << config.datarate <<  " " << throughput * 1000 <<  " " ;
+            fout << 100 - 100. * totalPacketsEchoed / totalSentPackets << endl;
+            
+            fout.close();  
+        }
 	}
 	cout << "total packet loss % "
 			<< 100 - 100. * totalPacketsEchoed / totalSentPackets << endl;
@@ -1515,13 +1576,14 @@ int main(int argc, char *argv[]) {
 	string addressresults = config.OutputPath + "moreinfo.txt";
 	risultati.open(addressresults.c_str(), ios::out | ios::trunc);
 
-    risultati << "Sta node#,distance,timerx(notassociated),timeidle(notassociated),timetx(notassociated),timesleep(notassociated),timecollision(notassociated)" << std::endl;
+    risultati << "Sta_node# distance timerx notassociated timeidle notassociated timetx notassociated timesleep notassociated timecollision notassociated interval" << std::endl;
     int i = 0;
     string spazio = ",";
     
     while (i < config.Nsta) {
         
-        risultati << i << spazio << dist[i] << spazio << timeRxArray[i].GetSeconds() << ",(" << timeRxNotAssociated[i].GetSeconds() << ")," << timeIdleArray[i].GetSeconds() << ",(" << timeIdleNotAssociated[i].GetSeconds() << ")," << timeTxArray[i].GetSeconds() << ",(" << timeTxNotAssociated[i].GetSeconds() << ")," << timeSleepArray[i].GetSeconds() << ",(" << timeSleepNotAssociated[i].GetSeconds() << ")," << timeCollisionArray[i].GetSeconds() << ",(" << timeCollisionNotAssociated[i].GetSeconds() << ")" << std::endl;
+        risultati << i << spazio << dist[i] << spazio << timeRxArray[i].GetSeconds() << " " << timeRxNotAssociated[i].GetSeconds() << " " << timeIdleArray[i].GetSeconds() << " " << timeIdleNotAssociated[i].GetSeconds() << " " << timeTxArray[i].GetSeconds() << " " << timeTxNotAssociated[i].GetSeconds() << " " << timeSleepArray[i].GetSeconds() << " " << timeSleepNotAssociated[i].GetSeconds() << " " << timeCollisionArray[i].GetSeconds() << " " << timeCollisionNotAssociated[i].GetSeconds() << " " <<freq[i]<<"" << std::endl;
+//         cout << i << " AID " << nodes[i]->aId << " group number: " << nodes[i]->rawGroupNumber <<endl;
         /*
          cout << "================== Sleep " << stats.get(i).TotalSleepTime.GetSeconds() << endl;
          cout << "================== Tx " << stats.get(i).TotalTxTime.GetSeconds() << endl;

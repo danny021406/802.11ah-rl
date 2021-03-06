@@ -7,6 +7,7 @@
 #include "ns3/mobility-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/internet-module.h"
+#include "ns3/opengym-module.h"
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
@@ -32,6 +33,7 @@
 #include "TCPFirmwareServer.h"
 #include "TCPSensorClient.h"
 #include "TCPSensorServer.h"
+#include "ah-rl-env.h"
 
 using namespace std;
 using namespace ns3;

@@ -10,7 +10,7 @@ Configuration::Configuration(int argc, char *argv[]) {
     cmd.AddValue("nControlLoops", "Number of control loops. If -1 all the stations will be in the loops if NSta is even", nControlLoops);
     cmd.AddValue("CoapPayloadSize", "Size of CoAP payload",coapPayloadSize);
      */
-    cmd.AddValue("seed", "random seed", seed);
+    cmd.AddValue("simSeed", "random seed", seed);
     cmd.AddValue("simulationTime", "Simulation time in seconds", simulationTime);
     cmd.AddValue("Nsta", "number of total stations", Nsta);
     cmd.AddValue("NRawSta", "number of stations supporting RAW. If -1 it will be based on NSta, should be divisible by NGroup", NRawSta);
@@ -36,6 +36,9 @@ Configuration::Configuration(int argc, char *argv[]) {
     cmd.AddValue("timOffset", "Offset in number of Beacon Intervals from the DTIM that carries the first page slice of the page", timOffset);
     cmd.AddValue("TrafficInterval", "Traffic interval time in ms", trafficInterval);
     cmd.AddValue("Outputpath", "files path of each stations", OutputPath);
+    
+    cmd.AddValue ("openGymPort", "OpenGymPort", openGymPort);
+    cmd.AddValue ("MaxGroupNum", "MaxGroupNum", MaxGroupNum);
 
 /*
     cmd.AddValue("SlotFormat", "format of NRawSlotCount, -1 will auto calculate based on raw slot num", SlotFormat);

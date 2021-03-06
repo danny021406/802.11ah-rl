@@ -49,14 +49,14 @@ struct Configuration {
 
 	uint32_t pagePeriod=2;  	//  Number of Beacon Intervals between DTIM beacons that carry Page Slice element for the associated page
 	uint8_t pageIndex = 0;
-	uint32_t pageSliceLength=1; //  Number of blocks in each TIM for the associated page except for the last TIM (1-31) (value 0 is reserved);
+	uint32_t pageSliceLength=2; //  Number of blocks in each TIM for the associated page except for the last TIM (1-31) (value 0 is reserved);
 	uint32_t pageSliceCount=2;  //  Number of TIMs in a single page period (1-31)
 	uint8_t blockOffset = 0;  	//  The 1st page slice starts with the block with blockOffset number
 	uint8_t timOffset = 0;    	//  Offset in number of Beacon Intervals from the DTIM that carries the first page slice of the page
 	/*
 	 * Common configuration parameters
 	 * */
-	double simulationTime = 60; //60
+	double simulationTime = 30; //60
 	uint32_t seed = 1;
 	int NRawSta;
 	uint32_t Nsta;
@@ -82,9 +82,12 @@ struct Configuration {
 	uint32_t payloadSize = 100;
 	string folder="./scratch/";
 	string file="./scratch/mac-sta.txt";
-	string TrafficPath="./OptimalRawGroup/traffic/data-32-0.82.txt";
+	string TrafficPath="./OptimalRawGroup/traffic/data-132-0.01.txt";
 	bool S1g1MfieldEnabled=false;
-	string RAWConfigFile = "./OptimalRawGroup/RawConfig-test.txt";
+// 	string RAWConfigFile = "./OptimalRawGroup/RawConfig-125-2-2-102400-2-1.txt";
+	string RAWConfigFile = "./OptimalRawGroup/RawConfig-125-5-2-51200-1-0.txt";
+    
+
 	string DataMode = "MCS2_0";
 	string OutputPath = "./OptimalRawGroup/";
 	/*
@@ -135,6 +138,9 @@ struct Configuration {
 	uint16_t MaxTimeOfPacketsInQueue = 100; //100
 
 	uint16_t CoolDownPeriod = 4; //60
+    
+    uint32_t openGymPort = 5555;
+    uint32_t MaxGroupNum = 3;
 
 	Configuration();
 	Configuration(int argc, char *argv[]);

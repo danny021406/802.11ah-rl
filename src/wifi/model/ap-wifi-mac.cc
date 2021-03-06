@@ -613,12 +613,15 @@ ApWifiMac::GetSlotStartTimeFromAid (uint16_t aid) const
 			x = 1;
 			return start;
 		}
+        else{
+            std::cout<< aid << "  is not in config !!!!!!!!!!!!!!!!" << ass.GetRawGroupAIDStart() << " and " <<  ass.GetRawGroupAIDEnd() << "\n";
+        }
 	}
 	// AIDs that are not assigned to any RAW group can sleep through all the RAW groups
 	// For station that does not belong to anz RAW group, return the time after all RAW groups
 	/*currentRAW_start += (500 + slotDurationCount * 120) * slotNum;
 	NS_LOG_DEBUG ("[aid=" << aid << "] is located outside all RAWs. It can start contending " << currentRAW_start << " us after the beacon.");*/
-	NS_ASSERT (x);
+// 	NS_ASSERT (x);
 	return MicroSeconds (currentRAW_start);
 }
 
