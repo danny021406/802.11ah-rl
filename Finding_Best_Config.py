@@ -61,7 +61,8 @@ def env_step(action, step_round, step, Nsta, s_size, traffic_interval):
             if(second_slide >= Nsta):
                 continue
                 
-            if(action_count == action):
+#             if(action_count == action):
+            if(True):
 
                 line = "1\n3\n0 1 1 209 2 0 "
                 line += (str(1) + " " + str(first_slide) + "\n")
@@ -69,7 +70,6 @@ def env_step(action, step_round, step, Nsta, s_size, traffic_interval):
                 line += (str(first_slide+1) + " " + str(second_slide) + "\n")
                 line += "0 1 1 209 2 0 "
                 line += (str(second_slide+1) + " " + str(Nsta) + "\n")
-        #         print (line)
 
                 fp = open('OptimalRawGroup/RawConfig-finding.txt','wb')
                 fp.write(bytes(line.encode()))
@@ -82,7 +82,6 @@ def env_step(action, step_round, step, Nsta, s_size, traffic_interval):
                 seperate_lines = line.split()
                 reward = 100 - float(seperate_lines[9])
                 
-#                 state = init_interval(s_size, traffic_interval)
                 
                 return state, reward, 0, 1
             action_count = action_count + 1
