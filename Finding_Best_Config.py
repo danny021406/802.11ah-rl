@@ -44,47 +44,64 @@ def init_interval(s_size, traffic_interval):
     return state
 
 
-# In[3]:
+def case_config(action):
+    if(action == 0):
+        return 3, 50
+    elif(action == 1):
+        return 8, 50
+    elif(action == 2):
+        return 13, 50
+    elif(action == 3):
+        return 3, 200
+    elif(action == 4):
+        return 8, 200
+    elif(action == 5):
+        return 13, 200
+    elif(action == 6):
+        return 3, 1000
+    elif(action == 7):
+        return 8, 1000
+    elif(action == 8):
+        return 13, 1000
 
 
 
 def env_step(action, step_round, step, Nsta, s_size, traffic_interval):
     action_count = 0
     file_management()
-    for i in range(step_round):
-        for j in range(step_round):
+    action_space_size = 9
+    for i in range(action_space_size):
             
-            if(j<=i): 
-                continue
-            first_slide = (i+1) * step
-            second_slide = (j+1) * step
-            if(second_slide >= Nsta):
-                continue
-                
-#             if(action_count == action):
-            if(True):
+        group, duration = case_config(i) 
+        
+        step = Nsta / group
+        
+        line = "1\n" + str(group)
+        
+        for j in group:
+            first = j * step + 1
+            second = (j+1) * step
+            
+            if(j == group-1):
+                line += "\n0 1 1 " + str(duration) + " 2 0 "
+                line += (first + " " + second)
+            else:
+                line += "\n0 1 1 " + str(duration) + " 2 0 "
+                line += (first + " " + second)
 
-                line = "1\n3\n0 1 1 209 2 0 "
-                line += (str(1) + " " + str(first_slide) + "\n")
-                line += "0 1 1 209 2 0 "
-                line += (str(first_slide+1) + " " + str(second_slide) + "\n")
-                line += "0 1 1 209 2 0 "
-                line += (str(second_slide+1) + " " + str(Nsta) + "\n")
+        fp = open('OptimalRawGroup/RawConfig-finding.txt','wb')
+        fp.write(bytes(line.encode()))
+        fp.close()
 
-                fp = open('OptimalRawGroup/RawConfig-finding.txt','wb')
-                fp.write(bytes(line.encode()))
-                fp.close()
+        os.system(" ./waf --run \"test --simulationTime=5 --payloadSize=256 --RAWConfigFile=OptimalRawGroup/RawConfig-finding.txt \"")  
 
-                os.system(" ./waf --run \"test --simulationTime=5 --payloadSize=256 --RAWConfigFile=OptimalRawGroup/RawConfig-finding.txt \"")  
+        f = open("info.txt")
+        line = f.readline()
+        seperate_lines = line.split()
+        reward = 100 - float(seperate_lines[9])
 
-                f = open("info.txt")
-                line = f.readline()
-                seperate_lines = line.split()
-                reward = 100 - float(seperate_lines[9])
-                
-                
-                return state, reward, 0, 1
-            action_count = action_count + 1
+
+        return state, reward, 0, 1
                 
                 
 

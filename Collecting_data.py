@@ -12,13 +12,30 @@ def file_management():
 
 def write_file(reward, file):
     fp = open(file,'a')
-    string = str(float(reward)) + '\n'
+    string = reward
     fp.write((string))
     fp.close()
 
 
-# In[2]:
-
+def case_config(action):
+    if(action == 0):
+        return 3, 50
+    elif(action == 1):
+        return 8, 50
+    elif(action == 2):
+        return 13, 50
+    elif(action == 3):
+        return 3, 200
+    elif(action == 4):
+        return 8, 200
+    elif(action == 5):
+        return 13, 200
+    elif(action == 6):
+        return 3, 1000
+    elif(action == 7):
+        return 8, 1000
+    elif(action == 8):
+        return 13, 1000
 
 def init_interval(s_size, traffic_interval, file_name):
     
@@ -26,7 +43,7 @@ def init_interval(s_size, traffic_interval, file_name):
     os.system("touch freq.txt")  
     state = []
     for i in range(Nsta):
-        rnd = random.uniform(1, traffic_interval)
+        rnd = random.uniform(4000, 6000)
         state.append(rnd)
         fp = open('freq.txt','a')
         string = str(int(rnd))+ '\n'
@@ -39,35 +56,38 @@ def init_interval(s_size, traffic_interval, file_name):
 def collect_data(step_round, step, Nsta, s_size, traffic_interval, file_name):
     action_count = 0
     file_management()
-    for i in range(step_round):
-        for j in range(step_round):
+    action_space_size = 9
+    for i in range(action_space_size):
             
-            if(j<=i): 
-                continue
-            first_slide = (i+1) * step
-            second_slide = (j+1) * step
-            if(second_slide >= Nsta):
-                continue
-               
-            line = "1\n3\n0 1 1 209 2 0 "
-            line += (str(1) + " " + str(first_slide) + "\n")
-            line += "0 1 1 209 2 0 "
-            line += (str(first_slide+1) + " " + str(second_slide) + "\n")
-            line += "0 1 1 209 2 0 "
-            line += (str(second_slide+1) + " " + str(Nsta) + "\n")
-
-            fp = open('OptimalRawGroup/RawConfig-finding.txt','wb')
-            fp.write(bytes(line.encode()))
-            fp.close()
-
-            os.system(" ./waf --run \"test --simulationTime=5 --payloadSize=256 --RAWConfigFile=OptimalRawGroup/RawConfig-finding.txt \"")  
-
-            f = open("info.txt")
-            line = f.readline()
-            seperate_lines = line.split()
-            reward = 100 - float(seperate_lines[9])
+        group, duration = case_config(i) 
+        
+        step = int(Nsta / group)
+        
+        line = "1\n" + str(group)
+        
+        for j in range(group):
+            first = j * step + 1
+            second = (j+1) * step
             
-            write_file(reward, file_name)
+            if(j == group-1):
+                line += "\n0 1 1 " + str(duration) + " 2 0 "
+                line += (str(first) + " " + str(Nsta))
+            else:
+                line += "\n0 1 1 " + str(duration) + " 2 0 "
+                line += (str(first) + " " + str(second))
+
+        fp = open('OptimalRawGroup/RawConfig-finding.txt','wb')
+        fp.write(bytes(line.encode()))
+        fp.close()
+
+        os.system(" ./waf --run \"test --simulationTime=5 --payloadSize=256 --RAWConfigFile=OptimalRawGroup/RawConfig-finding.txt \"")  
+
+        f = open("info.txt")
+        line = f.readline()
+        seperate_lines = line.split()
+        reward = 100 - float(seperate_lines[9])
+            
+        write_file(line, file_name)
                 
 
 
@@ -86,7 +106,7 @@ import os
 
 times = 2000
 
-Nsta = 125
+Nsta = 80
 step = 10
 traffic_interval = 10000
 step_round = int(Nsta / step)
